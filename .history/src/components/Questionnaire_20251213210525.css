@@ -1,0 +1,307 @@
+.questionnaire-container {
+  width: 100vw;
+  min-height: 100vh;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 20px;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.questionnaire-content {
+  width: 100%;
+  max-width: 600px;
+  background-color: #fff;
+  border-radius: 16px;
+  padding: 32px 24px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+  color: #333;
+  margin: 20px 0;
+}
+
+.questionnaire-title {
+  font-size: 28px;
+  font-weight: 700;
+  color: #333;
+  margin-bottom: 8px;
+  text-align: center;
+}
+
+.questionnaire-intro {
+  font-size: 16px;
+  color: #666;
+  text-align: center;
+  margin-bottom: 32px;
+}
+
+.questions-list {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+.question-wrapper {
+  border-bottom: 1px solid #eee;
+  padding-bottom: 24px;
+}
+
+.question-wrapper:last-child {
+  border-bottom: none;
+}
+
+.question-item {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.question-text {
+  font-size: 18px;
+  font-weight: 600;
+  color: #333;
+  line-height: 1.5;
+}
+
+/* 单选题样式 */
+.options-group {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.option-label {
+  display: flex;
+  align-items: center;
+  padding: 12px 16px;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  background-color: #fafafa;
+}
+
+.option-label:hover {
+  border-color: #667eea;
+  background-color: #f0f0ff;
+}
+
+.option-label input[type="radio"] {
+  margin-right: 12px;
+  width: 20px;
+  height: 20px;
+  cursor: pointer;
+  accent-color: #667eea;
+}
+
+.option-label input[type="radio"]:checked + .option-text {
+  color: #667eea;
+  font-weight: 600;
+}
+
+.option-label:has(input[type="radio"]:checked) {
+  border-color: #667eea;
+  background-color: #f0f0ff;
+}
+
+.option-text {
+  font-size: 16px;
+  color: #333;
+  flex: 1;
+}
+
+/* Likert量表样式 */
+.likert-container {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.likert-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  color: #666;
+  padding: 0 8px;
+}
+
+.likert-label-left,
+.likert-label-right {
+  max-width: 45%;
+}
+
+.likert-scale {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 0 4px;
+}
+
+.likert-option {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  cursor: pointer;
+  padding: 8px 4px;
+  border-radius: 8px;
+  transition: background-color 0.2s ease;
+}
+
+.likert-option:hover {
+  background-color: #f0f0ff;
+}
+
+.likert-option input[type="radio"] {
+  width: 24px;
+  height: 24px;
+  margin-bottom: 8px;
+  cursor: pointer;
+  accent-color: #667eea;
+}
+
+.likert-number {
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
+}
+
+.likert-option:has(input[type="radio"]:checked) .likert-number {
+  color: #667eea;
+}
+
+/* 提交区域 */
+.submit-section {
+  margin-top: 40px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.submit-btn {
+  width: 100%;
+  max-width: 300px;
+  padding: 16px 32px;
+  font-size: 18px;
+  font-weight: 600;
+  color: #fff;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+}
+
+.submit-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+}
+
+.submit-btn:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.submit-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.error-message {
+  color: #ff3b30;
+  font-size: 14px;
+  text-align: center;
+}
+
+/* 提交成功页面 */
+.submit-success {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 40px 20px;
+  text-align: center;
+  color: #fff;
+}
+
+.success-icon {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background-color: #34c759;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 48px;
+  color: #fff;
+  margin-bottom: 24px;
+  animation: scaleIn 0.5s ease-out;
+}
+
+@keyframes scaleIn {
+  from {
+    transform: scale(0);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.submit-success h2 {
+  font-size: 32px;
+  margin-bottom: 16px;
+}
+
+.submit-success p {
+  font-size: 18px;
+  opacity: 0.9;
+}
+
+/* 移动端优化 */
+@media (max-width: 768px) {
+  .questionnaire-container {
+    padding: 12px;
+  }
+
+  .questionnaire-content {
+    padding: 24px 16px;
+    border-radius: 12px;
+  }
+
+  .questionnaire-title {
+    font-size: 24px;
+  }
+
+  .question-text {
+    font-size: 16px;
+  }
+
+  .likert-scale {
+    gap: 4px;
+  }
+
+  .likert-option {
+    padding: 6px 2px;
+  }
+
+  .likert-option input[type="radio"] {
+    width: 20px;
+    height: 20px;
+    margin-bottom: 6px;
+  }
+
+  .likert-number {
+    font-size: 14px;
+  }
+
+  .likert-labels {
+    font-size: 11px;
+  }
+}
+
