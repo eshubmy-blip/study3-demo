@@ -187,8 +187,9 @@ export default function VideoExperiment({
     } else {
       video.addEventListener('loadstart', handleLoadStart)
       video.addEventListener('progress', handleProgress)
-      video.addEventListener('canplay', handleCanPlay, { once: true })
-      video.addEventListener('canplaythrough', handleCanPlayThrough, { once: true })
+      // 移除 once:true，避免部分移动端只触发一次后无法再次响应
+      video.addEventListener('canplay', handleCanPlay)
+      video.addEventListener('canplaythrough', handleCanPlayThrough)
       video.addEventListener('loadeddata', handleLoadedData)
       video.addEventListener('loadedmetadata', handleLoadedMetadata)
       video.addEventListener('error', handleError)
@@ -221,7 +222,7 @@ export default function VideoExperiment({
           like: currentState.likeClicked ? 1 : 0,
           cart: currentState.cartClicked ? 1 : 0,
             watch_duration: parseFloat(finalDuration.toFixed(2)),
-          completed: 1
+            completed: 1
           })
         }, 500)
       }
@@ -373,9 +374,24 @@ export default function VideoExperiment({
               onClick={() => {
                 setVideoError(null)
                 setIsVideoLoading(true)
-                if (videoRef.current) {
-                  videoRef.current.load()
-                }
+
+                const video = videoRef.current
+                if (!video) return
+
+                try {
+                  video.pause()
+                  video.currentTime = 0
+                } catch {}
+
+                const baseUrl = videoData.video_url.split('?')[0]
+                const newUrl = `${baseUrl}?t=${Date.now()}`
+
+                video.src = newUrl
+                video.load()
+
+                video.play().catch(() => {
+                  // 如果仍失败，允许用户点击视频手动播放
+                })
               }}
             >
               重试
