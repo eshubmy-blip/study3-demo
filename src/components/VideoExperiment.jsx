@@ -374,23 +374,25 @@ export default function VideoExperiment({
               onClick={() => {
                 setVideoError(null)
                 setIsVideoLoading(true)
-
+              
                 const video = videoRef.current
                 if (!video) return
-
-                try {
-                  video.pause()
-                  video.currentTime = 0
-                } catch {}
-
-                const baseUrl = videoData.video_url.split('?')[0]
-                const newUrl = `${baseUrl}?t=${Date.now()}`
-
-                video.src = newUrl
+              
+                // 1) 彻底断开旧 source（iOS/HLS 很关键）
+                try { video.pause() } catch {}
+                try { video.removeAttribute('src') } catch {}
+                try { video.load() } catch {}
+              
+                // 2) cache-bust（只对 m3u8 做即可）
+                const baseUrl = (videoData.video_url || '').split('?')[0]
+                const bustedUrl = `${baseUrl}?cb=${Date.now()}`
+              
+                // 3) 重新挂载 + 重新加载 + 尝试播放
+                video.src = bustedUrl
                 video.load()
-
+              
                 video.play().catch(() => {
-                  // 如果仍失败，允许用户点击视频手动播放
+                  // iOS 可能仍要求用户点一下视频
                 })
               }}
             >
@@ -407,6 +409,8 @@ export default function VideoExperiment({
           x5-playsinline="true"
           controls={false}
           preload="auto"
+          autoPlay
+          muted
           onClick={handleVideoClick}
           style={{ cursor: isPlaying ? 'default' : 'pointer' }}
         />

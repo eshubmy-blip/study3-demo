@@ -8,20 +8,20 @@ const BUCKET = "study3-videos"; // <-- 改成你真实的 bucket 名
  * video_url: Supabase Storage 中的视频 URL
  */
 export const videos = [
-  { 
-    video_id: "P306_C", 
-    video_url: `${BASE}/storage/v1/object/public/${BUCKET}/P306-C.mp4` 
+  {
+    video_id: "P306_C",
+    video_url: `${BASE}/storage/v1/object/public/${BUCKET}/hls/P306-C/index.m3u8`,
   },
-  { 
-    video_id: "P306_M", 
-    video_url: `${BASE}/storage/v1/object/public/${BUCKET}/P306-M.mp4` 
+  {
+    video_id: "P306_M",
+    video_url: `${BASE}/storage/v1/object/public/${BUCKET}/hls/P306-M/index.m3u8`,
+  },{
+    video_id: "P312_C",
+    video_url: `${BASE}/storage/v1/object/public/${BUCKET}/hls/P312-C/index.m3u8`,
   },
-  { 
-    video_id: "P312_C", 
-    video_url: `${BASE}/storage/v1/object/public/${BUCKET}/P312-C.mp4` 
-  },{ 
-    video_id: "P318_C", 
-    video_url: `${BASE}/storage/v1/object/public/${BUCKET}/P318-C.mp4` 
+  {
+    video_id: "P318_C",
+    video_url: `${BASE}/storage/v1/object/public/${BUCKET}/hls/P318-M/index.m3u8`,
   },
 ];
 
