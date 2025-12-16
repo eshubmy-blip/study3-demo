@@ -4,7 +4,7 @@ import VideoExperiment from './components/VideoExperiment'
 import Questionnaire from './components/Questionnaire'
 import { generateUserId } from './utils/uuid'
 import { insertOrUpdateStudy3Session } from './utils/insertStudy3Session'
-import { getRandomVideo } from './utils/videos'
+import { getLeastCompletedVideo } from './utils/videos'
 import './App.css'
 
 function App() {
@@ -37,7 +37,7 @@ function App() {
     sessionCreatedRef.current = false
   }, [])
 
-  const handleStart = () => {
+  const handleStart = async () => {
     // 这一次点击 = 用户交互
     // 立即创建一个临时视频元素来解锁音频播放权限
     const tempVideo = document.createElement('video')
@@ -61,9 +61,9 @@ function App() {
     sessionCreatedRef.current = false // 重置 session 创建标志
     videoPickedRef.current = false // 重置视频选择标志
     
-    // 新开始实验时，随机选择视频（只执行一次，使用 useRef 防止重复）
+    // 新开始实验时，基于“最少完成数优先”策略选择视频（只执行一次，使用 useRef 防止重复）
     if (!videoPickedRef.current) {
-      const video = getRandomVideo()
+      const video = await getLeastCompletedVideo()
       setCurrentVideoData(video)
       videoPickedRef.current = true
       console.log("[VIDEO PICKED IN APP]", video.video_id)

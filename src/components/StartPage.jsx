@@ -73,13 +73,13 @@ export default function StartPage({ onStart }) {
             After clicking start, a short video (about 20–25 seconds) will be played, and after the playback ends, it will automatically enter the questionnaire.
           </div>
           <div style={{ fontSize: "16px", color: "#666" }}>
-            点击开始后将播放一段短视频（约 20–25 秒），播放结束后自动进入问卷。
+          点击开始后将播放一段短视频（约 20–25 秒），播放结束后自动进入问卷。
           </div>
           <div style={{ fontSize: "15px", color: "#666", marginTop: "4px" }}>
             Please ensure a smooth network connection and turn on the sound (if needed).
           </div>
           <div style={{ fontSize: "16px", color: "#666" }}>
-            请确保网络通畅，并开启声音（如需要）。
+          请确保网络通畅，并开启声音（如需要）。
           </div>
         </div>
   

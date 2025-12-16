@@ -25,7 +25,6 @@ export default function VideoExperiment({
   const [isVideoLoading, setIsVideoLoading] = useState(true)
   
   const videoRef = useRef(null)
-  const startTimeRef = useRef(null)
   const durationIntervalRef = useRef(null)
   const loadingTimeoutRef = useRef(null)
   // 使用 ref 存储最新的交互状态，避免在 useEffect 依赖中频繁重新设置事件监听器
@@ -61,9 +60,17 @@ export default function VideoExperiment({
     console.log('开始加载视频:', videoData.video_id, videoData.video_url)
     console.log('视频 readyState:', video.readyState)
     
-    // 确保视频不是静音的，音量设置为最大
-    video.muted = false
-    video.volume = 1.0
+    // 初始静音，配合 <video autoPlay muted />，避免 iOS 因非静音自动播放被拦截
+    video.muted = true
+
+    // 统一的“结束 loading”工具函数
+    const stopLoading = () => {
+      if (loadingTimeoutRef.current) {
+        clearTimeout(loadingTimeoutRef.current)
+        loadingTimeoutRef.current = null
+      }
+      setIsVideoLoading(false)
+    }
     
     // 设置超时处理（30秒）
     // 先清除之前的 timeout（如果存在）
@@ -100,31 +107,10 @@ export default function VideoExperiment({
       }
     }
     
-    // 视频可以播放
+    // 视频可以播放：这里只负责结束 loading
       const handleCanPlay = () => {
       console.log('视频可以播放', videoData.video_id, videoData.video_url)
-      if (loadingTimeoutRef.current) {
-        clearTimeout(loadingTimeoutRef.current)
-        loadingTimeoutRef.current = null
-      }
-      setIsVideoLoading(false)
-      video.play().then(() => {
-        console.log('视频播放成功，声音已启用')
-      }).catch(err => {
-          console.error('自动播放失败:', err)
-        setIsVideoLoading(false)
-        // 如果自动播放失败，尝试静音播放作为备选
-        if (err.name === 'NotAllowedError') {
-          console.warn('浏览器阻止自动播放，尝试静音播放')
-          video.muted = true
-          video.play().catch(e => {
-            console.error('静音播放也失败:', e)
-            setVideoError('视频播放失败，请点击视频手动播放')
-          })
-        } else {
-          setVideoError('视频播放失败，请点击视频手动播放')
-        }
-      })
+      stopLoading()
     }
     
     // 视频可以开始播放（更早的事件）
@@ -166,34 +152,37 @@ export default function VideoExperiment({
     // 视频加载完成
     const handleLoadedData = () => {
       console.log('视频数据加载完成')
-      if (loadingTimeoutRef.current) {
-        clearTimeout(loadingTimeoutRef.current)
-        loadingTimeoutRef.current = null
-      }
+      stopLoading()
     }
     
-    // 视频元数据加载完成
+    // 视频元数据加载完成（这里只做日志，不结束 loading）
     const handleLoadedMetadata = () => {
       console.log('视频元数据加载完成，时长:', video.duration, '秒')
     }
-    
-    // 如果视频已经可以播放，立即尝试
-    if (video.readyState >= 3) { // HAVE_FUTURE_DATA
-      if (loadingTimeoutRef.current) {
-        clearTimeout(loadingTimeoutRef.current)
-        loadingTimeoutRef.current = null
-      }
-      handleCanPlay()
-    } else {
-      video.addEventListener('loadstart', handleLoadStart)
-      video.addEventListener('progress', handleProgress)
-      // 移除 once:true，避免部分移动端只触发一次后无法再次响应
-      video.addEventListener('canplay', handleCanPlay)
-      video.addEventListener('canplaythrough', handleCanPlayThrough)
-      video.addEventListener('loadeddata', handleLoadedData)
-      video.addEventListener('loadedmetadata', handleLoadedMetadata)
-      video.addEventListener('error', handleError)
-      }
+
+    // 视频开始播放：最可靠的结束 loading 时机
+    const handlePlaying = () => {
+      console.log('视频开始播放 playing')
+      stopLoading()
+    }
+
+    // 视频缓冲：重新显示 loading 遮罩
+    const handleWaiting = () => {
+      console.log('视频缓冲中 waiting')
+      setIsVideoLoading(true)
+    }
+
+    // 统一绑定事件监听
+    video.addEventListener('loadstart', handleLoadStart)
+    video.addEventListener('progress', handleProgress)
+    // 移除 once:true，避免部分移动端只触发一次后无法再次响应
+    video.addEventListener('canplay', handleCanPlay)
+    video.addEventListener('canplaythrough', handleCanPlayThrough)
+    video.addEventListener('loadeddata', handleLoadedData)
+    video.addEventListener('loadedmetadata', handleLoadedMetadata)
+    video.addEventListener('error', handleError)
+    video.addEventListener('playing', handlePlaying)
+    video.addEventListener('waiting', handleWaiting)
 
       const handlePlay = () => {
         setIsPlaying(true)
@@ -227,25 +216,27 @@ export default function VideoExperiment({
         }, 500)
       }
 
-      video.addEventListener('play', handlePlay)
-      video.addEventListener('ended', handleEnded)
+    video.addEventListener('play', handlePlay)
+    video.addEventListener('ended', handleEnded)
 
-      return () => {
+    return () => {
       if (loadingTimeoutRef.current) {
         clearTimeout(loadingTimeoutRef.current)
         loadingTimeoutRef.current = null
       }
       video.removeEventListener('loadstart', handleLoadStart)
       video.removeEventListener('progress', handleProgress)
-        video.removeEventListener('canplay', handleCanPlay)
+      video.removeEventListener('canplay', handleCanPlay)
       video.removeEventListener('canplaythrough', handleCanPlayThrough)
       video.removeEventListener('loadeddata', handleLoadedData)
       video.removeEventListener('loadedmetadata', handleLoadedMetadata)
       video.removeEventListener('error', handleError)
-        video.removeEventListener('play', handlePlay)
-        video.removeEventListener('ended', handleEnded)
-        if (durationIntervalRef.current) {
-          clearInterval(durationIntervalRef.current)
+      video.removeEventListener('playing', handlePlaying)
+      video.removeEventListener('waiting', handleWaiting)
+      video.removeEventListener('play', handlePlay)
+      video.removeEventListener('ended', handleEnded)
+      if (durationIntervalRef.current) {
+        clearInterval(durationIntervalRef.current)
         durationIntervalRef.current = null
       }
     }
@@ -346,12 +337,16 @@ export default function VideoExperiment({
     )
   }
 
-  // 手动播放视频（用于移动端）
-  const handleVideoClick = () => {
-    if (videoRef.current && !isPlaying) {
-      videoRef.current.play().catch(err => {
-        console.error('手动播放失败:', err)
-      })
+  // 手动播放视频（用于移动端）：点击时解除静音并尝试有声播放
+  const handleVideoClick = async () => {
+    const v = videoRef.current
+    if (!v) return
+    try {
+      v.muted = false
+      v.volume = 1
+      await v.play()
+    } catch (err) {
+      console.error('点击播放/开声失败:', err)
     }
   }
 
@@ -374,6 +369,9 @@ export default function VideoExperiment({
               onClick={() => {
                 setVideoError(null)
                 setIsVideoLoading(true)
+                setIsPlaying(false)
+                setIsCompleted(false)
+                setWatchDuration(0)
               
                 const video = videoRef.current
                 if (!video) return
@@ -381,16 +379,20 @@ export default function VideoExperiment({
                 // 1) 彻底断开旧 source（iOS/HLS 很关键）
                 try { video.pause() } catch {}
                 try { video.removeAttribute('src') } catch {}
+                try { video.src = '' } catch {}
                 try { video.load() } catch {}
               
-                // 2) cache-bust（只对 m3u8 做即可）
+                // 2) cache-bust
                 const baseUrl = (videoData.video_url || '').split('?')[0]
                 const bustedUrl = `${baseUrl}?cb=${Date.now()}`
               
-                // 3) 重新挂载 + 重新加载 + 尝试播放
+                // 3) 重新挂载 + 重新加载 + 尝试播放（重新静音，避免自动播放被拦）
                 video.src = bustedUrl
+                video.muted = true
                 video.load()
-              
+
+                try { video.currentTime = 0 } catch {}
+
                 video.play().catch(() => {
                   // iOS 可能仍要求用户点一下视频
                 })
