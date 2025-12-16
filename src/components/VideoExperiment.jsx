@@ -31,6 +31,8 @@ export default function VideoExperiment({
   const hasStartedPlayingRef = useRef(false)
   // 使用 ref 存储最新的交互状态，避免在 useEffect 依赖中频繁重新设置事件监听器
   const interactionStateRef = useRef({ likeClicked, cartClicked })
+  // 保存最新的 onComplete 引用，避免作为依赖导致初始化 effect 重跑
+  const onCompleteRef = useRef(onComplete)
   // 防止双触发（pointer + click）
   const likeClickHandledRef = useRef(false)
   const cartClickHandledRef = useRef(false)
@@ -49,6 +51,11 @@ export default function VideoExperiment({
   useEffect(() => {
     interactionStateRef.current = { likeClicked, cartClicked }
   }, [likeClicked, cartClicked])
+
+  // 同步最新的 onComplete 引用，避免 useEffect 依赖它
+  useEffect(() => {
+    onCompleteRef.current = onComplete
+  }, [onComplete])
 
   // 视频加载完成后自动播放
   // 注意：此 effect 不依赖会频繁变化的状态（如 likeClicked, cartClicked）
@@ -202,7 +209,7 @@ export default function VideoExperiment({
 
       const handleEnded = () => {
         setIsCompleted(true)
-        const finalDuration = video.currentTime || watchDuration
+        const finalDuration = video.currentTime || 0
         setWatchDuration(finalDuration)
         
         if (durationIntervalRef.current) {
@@ -211,15 +218,17 @@ export default function VideoExperiment({
         }
         
         setTimeout(() => {
-        // 使用 ref 获取最新的交互状态
+        // 使用 ref 获取最新的交互状态和最新的 onComplete
         const currentState = interactionStateRef.current
-          onComplete({
-            video_id: videoData.video_id,
-          like: currentState.likeClicked ? 1 : 0,
-          cart: currentState.cartClicked ? 1 : 0,
-            watch_duration: parseFloat(finalDuration.toFixed(2)),
-            completed: 1
-          })
+          if (onCompleteRef.current) {
+            onCompleteRef.current({
+              video_id: videoData.video_id,
+              like: currentState.likeClicked ? 1 : 0,
+              cart: currentState.cartClicked ? 1 : 0,
+              watch_duration: parseFloat(finalDuration.toFixed(2)),
+              completed: 1
+            })
+          }
         }, 500)
       }
 
@@ -247,7 +256,7 @@ export default function VideoExperiment({
         durationIntervalRef.current = null
       }
     }
-  }, [videoData, onComplete]) // 移除 isVideoLoading 依赖，避免频繁重新绑定
+  }, [videoData]) // 只在视频切换时重新初始化，避免 onComplete 变化触发
   
 
   // 处理红心点击（可切换）- 核心逻辑

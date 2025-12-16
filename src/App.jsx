@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import StartPage from './components/StartPage'
 import VideoExperiment from './components/VideoExperiment'
 import Questionnaire from './components/Questionnaire'
@@ -93,7 +93,7 @@ function App() {
     setCurrentStep('video')
   }
 
-  const handleVideoComplete = async (data) => {
+  const handleVideoComplete = useCallback(async (data) => {
     console.log('行为数据已记录:', data)
     setBehaviorData(data)
     // currentVideoData 已经在 App 层管理，不需要从 data 中获取
@@ -117,7 +117,7 @@ function App() {
     }
 
     setCurrentStep('questionnaire')
-  }
+  }, [returnCount, userId])
 
   const handleBackToVideo = async () => {
     // 从 behaviorData 恢复交互状态（如果存在）
