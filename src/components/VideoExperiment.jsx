@@ -23,10 +23,12 @@ export default function VideoExperiment({
   const [isPlaying, setIsPlaying] = useState(false)
   const [videoError, setVideoError] = useState(null)
   const [isVideoLoading, setIsVideoLoading] = useState(true)
+  const [isMuted, setIsMuted] = useState(true)
   
   const videoRef = useRef(null)
   const durationIntervalRef = useRef(null)
   const loadingTimeoutRef = useRef(null)
+  const hasStartedPlayingRef = useRef(false)
   // 使用 ref 存储最新的交互状态，避免在 useEffect 依赖中频繁重新设置事件监听器
   const interactionStateRef = useRef({ likeClicked, cartClicked })
   // 防止双触发（pointer + click）
@@ -62,6 +64,8 @@ export default function VideoExperiment({
     
     // 初始静音，配合 <video autoPlay muted />，避免 iOS 因非静音自动播放被拦截
     video.muted = true
+    setIsMuted(true)
+    hasStartedPlayingRef.current = false
 
     // 统一的“结束 loading”工具函数
     const stopLoading = () => {
@@ -163,13 +167,16 @@ export default function VideoExperiment({
     // 视频开始播放：最可靠的结束 loading 时机
     const handlePlaying = () => {
       console.log('视频开始播放 playing')
+      hasStartedPlayingRef.current = true
       stopLoading()
     }
 
-    // 视频缓冲：重新显示 loading 遮罩
+    // 视频缓冲：仅在尚未开始播放前显示 loading 遮罩
     const handleWaiting = () => {
       console.log('视频缓冲中 waiting')
-      setIsVideoLoading(true)
+      if (!hasStartedPlayingRef.current) {
+        setIsVideoLoading(true)
+      }
     }
 
     // 统一绑定事件监听
@@ -342,6 +349,7 @@ export default function VideoExperiment({
     const v = videoRef.current
     if (!v) return
     try {
+      setIsMuted(false)
       v.muted = false
       v.volume = 1
       await v.play()
@@ -412,7 +420,7 @@ export default function VideoExperiment({
           controls={false}
           preload="auto"
           autoPlay
-          muted
+          muted={isMuted}
           onClick={handleVideoClick}
           style={{ cursor: isPlaying ? 'default' : 'pointer' }}
         />
