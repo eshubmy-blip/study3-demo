@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import './VideoExperiment.css'
+import Bilingual from './Bilingual'
+import { TEXT } from '../i18n/text'
 
 /**
  * 视频实验页面组件
@@ -21,9 +23,10 @@ export default function VideoExperiment({
   const [watchDuration, setWatchDuration] = useState(0)
   const [isCompleted, setIsCompleted] = useState(false)
   const [isPlaying, setIsPlaying] = useState(false)
-  const [videoError, setVideoError] = useState(null)
+  const [videoErrorKey, setVideoErrorKey] = useState(null) // 使用 key 映射到文案
   const [isVideoLoading, setIsVideoLoading] = useState(true)
   const [isMuted, setIsMuted] = useState(true)
+  const [needsUserUnmute, setNeedsUserUnmute] = useState(false)
   
   const videoRef = useRef(null)
   const durationIntervalRef = useRef(null)
@@ -36,6 +39,13 @@ export default function VideoExperiment({
   // 防止双触发（pointer + click）
   const likeClickHandledRef = useRef(false)
   const cartClickHandledRef = useRef(false)
+  // 记录是否已经自动尝试过取消静音
+  const triedAutoUnmuteRef = useRef(false)
+
+  // 根据 HLS 播放地址推导封面图 poster（与 index.m3u8 同级）
+  const posterUrl = videoData?.video_url
+    ? videoData.video_url.split('?')[0].replace('index.m3u8', 'poster.jpg')
+    : undefined
 
   // 当初始状态变化时，同步更新本地状态（用于从问卷返回时恢复状态）
   useEffect(() => {
@@ -57,14 +67,37 @@ export default function VideoExperiment({
     onCompleteRef.current = onComplete
   }, [onComplete])
 
+  // 统一的开启有声播放逻辑
+  const tryEnableSound = async ({ fromUserGesture }) => {
+    const video = videoRef.current
+    if (!video) return
+
+    try {
+      video.muted = false
+      video.volume = 1
+      setIsMuted(false)
+      await video.play()
+      setNeedsUserUnmute(false)
+    } catch (err) {
+      console.error('尝试开启有声播放失败:', err)
+      // 仅在非用户手势的自动尝试失败时，回退为静音并提示需要用户手动开启
+      if (!fromUserGesture) {
+        video.muted = true
+        video.volume = 0
+        setIsMuted(true)
+        setNeedsUserUnmute(true)
+      }
+    }
+  }
+
   // 视频加载完成后自动播放
   // 注意：此 effect 不依赖会频繁变化的状态（如 likeClicked, cartClicked）
   useEffect(() => {
     if (!videoRef.current || !videoData) return
-      const video = videoRef.current
-      
+    const video = videoRef.current
+    
     setIsVideoLoading(true)
-    setVideoError(null)
+    setVideoErrorKey(null)
     
     console.log('开始加载视频:', videoData.video_id, videoData.video_url)
     console.log('视频 readyState:', video.readyState)
@@ -73,6 +106,9 @@ export default function VideoExperiment({
     video.muted = true
     setIsMuted(true)
     hasStartedPlayingRef.current = false
+    // 每次切换视频时，重置自动静音相关状态
+    setNeedsUserUnmute(false)
+    triedAutoUnmuteRef.current = false
 
     // 统一的“结束 loading”工具函数
     const stopLoading = () => {
@@ -93,7 +129,7 @@ export default function VideoExperiment({
       setIsVideoLoading(prev => {
         if (prev) {
           console.warn('视频加载超时')
-          setVideoError('视频加载超时，请检查网络连接或点击重试')
+          setVideoErrorKey('timeout')
           return false
         }
         return prev
@@ -141,22 +177,24 @@ export default function VideoExperiment({
       setIsVideoLoading(false)
       const error = video.error
       if (error) {
-        let errorMsg = '视频加载失败'
+        let errorKey = 'failed'
         switch (error.code) {
           case error.MEDIA_ERR_ABORTED:
-            errorMsg = '视频加载被中止'
+            errorKey = 'aborted'
             break
           case error.MEDIA_ERR_NETWORK:
-            errorMsg = '网络错误，请检查网络连接'
+            errorKey = 'network'
             break
           case error.MEDIA_ERR_DECODE:
-            errorMsg = '视频格式不支持，请使用其他浏览器'
+            errorKey = 'decode'
             break
           case error.MEDIA_ERR_SRC_NOT_SUPPORTED:
-            errorMsg = '视频格式不支持'
+            errorKey = 'notSupported'
             break
+          default:
+            errorKey = 'failed'
         }
-        setVideoError(errorMsg)
+        setVideoErrorKey(errorKey)
       }
     }
     
@@ -176,6 +214,20 @@ export default function VideoExperiment({
       console.log('视频开始播放 playing')
       hasStartedPlayingRef.current = true
       stopLoading()
+
+      // 尝试在首次播放时，根据 sessionStorage 自动开启有声播放
+      try {
+        if (
+          !triedAutoUnmuteRef.current &&
+          typeof sessionStorage !== 'undefined' &&
+          sessionStorage.getItem('study3_sound_unlocked') === '1'
+        ) {
+          triedAutoUnmuteRef.current = true
+          tryEnableSound({ fromUserGesture: false })
+        }
+      } catch (e) {
+        console.warn('自动尝试开启声音时出现异常:', e)
+      }
     }
 
     // 视频缓冲：仅在尚未开始播放前显示 loading 遮罩
@@ -209,17 +261,17 @@ export default function VideoExperiment({
 
       const handleEnded = () => {
         setIsCompleted(true)
-        const finalDuration = video.currentTime || 0
+      
+        const finalDuration = Number.isFinite(video.currentTime) ? video.currentTime : 0
         setWatchDuration(finalDuration)
-        
+      
         if (durationIntervalRef.current) {
           clearInterval(durationIntervalRef.current)
-        durationIntervalRef.current = null
+          durationIntervalRef.current = null
         }
-        
+      
         setTimeout(() => {
-        // 使用 ref 获取最新的交互状态和最新的 onComplete
-        const currentState = interactionStateRef.current
+          const currentState = interactionStateRef.current
           if (onCompleteRef.current) {
             onCompleteRef.current({
               video_id: videoData.video_id,
@@ -348,23 +400,14 @@ export default function VideoExperiment({
   if (!videoData) {
     return (
       <div className="video-experiment-loading">
-        <div className="loading-spinner">加载中...</div>
+        <div className="loading-spinner">
+          <Bilingual
+            en={TEXT.video.loading.en}
+            zh={TEXT.video.loading.zh}
+          />
+        </div>
       </div>
     )
-  }
-
-  // 手动播放视频（用于移动端）：点击时解除静音并尝试有声播放
-  const handleVideoClick = async () => {
-    const v = videoRef.current
-    if (!v) return
-    try {
-      setIsMuted(false)
-      v.muted = false
-      v.volume = 1
-      await v.play()
-    } catch (err) {
-      console.error('点击播放/开声失败:', err)
-    }
   }
 
   return (
@@ -372,51 +415,71 @@ export default function VideoExperiment({
       <div className="video-wrapper">
         {isVideoLoading && (
           <div className="video-loading-overlay" style={{ pointerEvents: 'none' }}>
-            <div className="loading-spinner">视频加载中...</div>
-            <div style={{ marginTop: '16px', fontSize: '14px', opacity: 0.8 }}>
-              如果长时间无法加载，请检查网络连接
+            <div className="video-overlay-content">
+              <div className="loading-spinner">
+                <Bilingual
+                  en={TEXT.video.loading.en}
+                  zh={TEXT.video.loading.zh}
+                />
+              </div>
+              <div className="video-overlay-hint">
+                <Bilingual
+                  en={TEXT.video.hint.en}
+                  zh={TEXT.video.hint.zh}
+                />
+              </div>
             </div>
           </div>
         )}
-        {videoError && (
+        {videoErrorKey && (
           <div className="video-error-overlay" style={{ pointerEvents: 'auto' }}>
-            <div className="error-message">{videoError}</div>
-            <button 
-              className="retry-button"
-              onClick={() => {
-                setVideoError(null)
-                setIsVideoLoading(true)
-                setIsPlaying(false)
-                setIsCompleted(false)
-                setWatchDuration(0)
-              
-                const video = videoRef.current
-                if (!video) return
-              
-                // 1) 彻底断开旧 source（iOS/HLS 很关键）
-                try { video.pause() } catch {}
-                try { video.removeAttribute('src') } catch {}
-                try { video.src = '' } catch {}
-                try { video.load() } catch {}
-              
-                // 2) cache-bust
-                const baseUrl = (videoData.video_url || '').split('?')[0]
-                const bustedUrl = `${baseUrl}?cb=${Date.now()}`
-              
-                // 3) 重新挂载 + 重新加载 + 尝试播放（重新静音，避免自动播放被拦）
-                video.src = bustedUrl
-                video.muted = true
-                video.load()
+            <div className="video-overlay-content">
+              <div className="error-message">
+                <Bilingual
+                  en={TEXT.video[videoErrorKey].en}
+                  zh={TEXT.video[videoErrorKey].zh}
+                />
+              </div>
+              <button 
+                className="retry-button"
+                onClick={() => {
+                  setVideoErrorKey(null)
+                  setIsVideoLoading(true)
+                  setIsPlaying(false)
+                  setIsCompleted(false)
+                  setWatchDuration(0)
+                
+                  const video = videoRef.current
+                  if (!video) return
+                
+                  // 1) 彻底断开旧 source（iOS/HLS 很关键）
+                  try { video.pause() } catch {}
+                  try { video.removeAttribute('src') } catch {}
+                  try { video.src = '' } catch {}
+                  try { video.load() } catch {}
+                
+                  // 2) cache-bust
+                  const baseUrl = (videoData.video_url || '').split('?')[0]
+                  const bustedUrl = `${baseUrl}?cb=${Date.now()}`
+                
+                  // 3) 重新挂载 + 重新加载 + 尝试播放（重新静音，避免自动播放被拦）
+                  video.src = bustedUrl
+                  video.muted = true
+                  video.load()
 
-                try { video.currentTime = 0 } catch {}
+                  try { video.currentTime = 0 } catch {}
 
-                video.play().catch(() => {
-                  // iOS 可能仍要求用户点一下视频
-                })
-              }}
-            >
-              重试
-            </button>
+                  video.play().catch(() => {
+                    // iOS 可能仍要求用户点一下视频
+                  })
+                }}
+              >
+                <Bilingual
+                  en={TEXT.video.retry.en}
+                  zh={TEXT.video.retry.zh}
+                />
+              </button>
+            </div>
           </div>
         )}
         <video
@@ -427,12 +490,46 @@ export default function VideoExperiment({
           webkit-playsinline="true"
           x5-playsinline="true"
           controls={false}
-          preload="auto"
+          preload="metadata"
           autoPlay
           muted={isMuted}
-          onClick={handleVideoClick}
+          poster={posterUrl}
           style={{ cursor: isPlaying ? 'default' : 'pointer' }}
         />
+
+        {/* 需要用户手动开启声音时的提示浮层 */}
+        {needsUserUnmute && !videoErrorKey && (
+          <div
+            className="video-sound-overlay"
+            style={{
+              position: 'absolute',
+              inset: 0,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              pointerEvents: 'auto'
+            }}
+          >
+            <button
+              type="button"
+              className="sound-button"
+              onClick={() => tryEnableSound({ fromUserGesture: true })}
+              style={{
+                padding: '10px 18px',
+                borderRadius: '999px',
+                border: 'none',
+                backgroundColor: 'rgba(0, 0, 0, 0.75)',
+                color: '#fff',
+                fontSize: '14px'
+              }}
+            >
+              <Bilingual
+                en={TEXT.video.enableSound.en}
+                zh={TEXT.video.enableSound.zh}
+              />
+            </button>
+          </div>
+        )}
 
         
         {/* 交互按钮区域 */}
@@ -446,7 +543,12 @@ export default function VideoExperiment({
             type="button"
           >
             <span className="btn-icon">❤️</span>
-            <span className="btn-label">{likeClicked ? '已点赞' : '点赞'}</span>
+            <span className="btn-label">
+              <Bilingual
+                en={likeClicked ? TEXT.video.liked.en : TEXT.video.like.en}
+                zh={likeClicked ? TEXT.video.liked.zh : TEXT.video.like.zh}
+              />
+            </span>
           </button>
           
           <button
@@ -458,7 +560,12 @@ export default function VideoExperiment({
             type="button"
           >
             <span className="btn-icon">🛒</span>
-            <span className="btn-label">{cartClicked ? '已加入' : '加入购物车'}</span>
+            <span className="btn-label">
+              <Bilingual
+                en={cartClicked ? TEXT.video.added.en : TEXT.video.addToCart.en}
+                zh={cartClicked ? TEXT.video.added.zh : TEXT.video.addToCart.zh}
+              />
+            </span>
           </button>
         </div>
       </div>

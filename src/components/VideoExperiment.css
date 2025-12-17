@@ -45,7 +45,7 @@
 .experiment-video {
   width: 100%;
   height: 100%;
-  object-fit: contain;
+  object-fit: cover;
   background-color: #000;
 }
 
@@ -64,6 +64,22 @@
   color: #fff;
   font-size: 18px;
   pointer-events: none; /* 不阻挡按钮点击 */
+}
+
+/* 使 overlay 内容整体上移，避免被右侧交互按钮遮挡 */
+.video-overlay-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  transform: translateY(-15%);
+  padding: 0 24px;
+  text-align: center;
+}
+
+.video-overlay-hint {
+  margin-top: 16px;
+  font-size: 14px;
+  opacity: 0.8;
 }
 
 .video-error-overlay {

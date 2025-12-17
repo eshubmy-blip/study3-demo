@@ -29,14 +29,27 @@
 .questionnaire-header {
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: space-between;
   position: relative;
   margin-bottom: 8px;
 }
 
+.questionnaire-header-left,
+.questionnaire-header-right {
+  width: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.questionnaire-header-center {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+}
+
 .back-button {
-  position: absolute;
-  left: 0;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -251,6 +264,14 @@
   max-width: 40%;
   font-size: 11px;
   line-height: 1.4;
+}
+
+.likert-label-left {
+  text-align: left;
+}
+
+.likert-label-right {
+  text-align: right;
 }
 
 .likert-label-middle {

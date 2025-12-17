@@ -38,19 +38,9 @@ function App() {
   }, [])
 
   const handleStart = async () => {
-    // 这一次点击 = 用户交互
-    // 立即创建一个临时视频元素来解锁音频播放权限
-    const tempVideo = document.createElement('video')
-    tempVideo.muted = false
-    tempVideo.volume = 1.0
-    // 尝试播放一个空视频来解锁权限
-    tempVideo.play().then(() => {
-      tempVideo.pause()
-      tempVideo.remove()
-    }).catch(() => {
-      tempVideo.remove()
-    })
-    
+    // 标记本次会话已通过用户点击解锁过一次声音
+    sessionStorage.setItem('study3_sound_unlocked', '1')
+
     // 重置交互状态和视频数据（新开始实验）
     setInteractionState({
       likeClicked: false,

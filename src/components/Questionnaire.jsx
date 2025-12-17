@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react'
 import './Questionnaire.css'
 import { insertStudy3Row } from "../utils/insertStudy3Row";
+import Bilingual from './Bilingual'
+import { TEXT } from '../i18n/text'
 
 /**
  * 问卷页面组件 - Study 3 正式问卷
@@ -521,8 +523,12 @@ export default function Questionnaire({
         </div>
         {showError && (
           <div className="question-error-message">
-            <div className="error-text-en">Required — please answer this question before submitting.</div>
-            <div className="error-text-cn">必答题——请先完成本题再提交。</div>
+            <Bilingual
+              en={TEXT.questionnaire.requiredQuestion.en}
+              zh={TEXT.questionnaire.requiredQuestion.zh}
+              enClassName="error-text-en"
+              zhClassName="error-text-cn"
+            />
           </div>
         )}
       </div>
@@ -565,8 +571,12 @@ export default function Questionnaire({
         </div>
         {showError && (
           <div className="question-error-message">
-            <div className="error-text-en">Required — please answer this question before submitting.</div>
-            <div className="error-text-cn">必答题——请先完成本题再提交。</div>
+            <Bilingual
+              en={TEXT.questionnaire.requiredQuestion.en}
+              zh={TEXT.questionnaire.requiredQuestion.zh}
+              enClassName="error-text-en"
+              zhClassName="error-text-cn"
+            />
           </div>
         )}
       </div>
@@ -606,8 +616,12 @@ export default function Questionnaire({
         </div>
         {showError && (
           <div className="question-error-message">
-            <div className="error-text-en">Required — please answer this question before submitting.</div>
-            <div className="error-text-cn">必答题——请先完成本题再提交。</div>
+            <Bilingual
+              en={TEXT.questionnaire.requiredQuestion.en}
+              zh={TEXT.questionnaire.requiredQuestion.zh}
+              enClassName="error-text-en"
+              zhClassName="error-text-cn"
+            />
           </div>
         )}
       </div>
@@ -620,12 +634,20 @@ export default function Questionnaire({
         <div className="submit-success">
           <div className="success-icon">✓</div>
           <h2>
-            <div className="title-en">Submitted successfully</div>
-            <div className="title-cn">提交成功！</div>
+            <Bilingual
+              en={TEXT.questionnaire.submitSuccessTitle.en}
+              zh={TEXT.questionnaire.submitSuccessTitle.zh}
+              enClassName="title-en"
+              zhClassName="title-cn"
+            />
           </h2>
           <p>
-            <div className="intro-en">Thank you for your participation. Your experimental data has been successfully recorded.</div>
-            <div className="intro-cn">感谢您的参与，实验数据已成功记录。</div>
+            <Bilingual
+              en={TEXT.questionnaire.submitSuccessIntro.en}
+              zh={TEXT.questionnaire.submitSuccessIntro.zh}
+              enClassName="intro-en"
+              zhClassName="intro-cn"
+            />
           </p>
         </div>
       </div>
@@ -636,35 +658,48 @@ export default function Questionnaire({
     <div className="questionnaire-container">
       <div className="questionnaire-content">
         <div className="questionnaire-header">
-          {onBack && (
-            <button 
-              className="back-button"
-              onClick={onBack}
-              aria-label="返回视频"
-              title="返回视频"
-            >
-              <svg 
-                width="24" 
-                height="24" 
-                viewBox="0 0 24 24" 
-                fill="none" 
-                stroke="currentColor" 
-                strokeWidth="2" 
-                strokeLinecap="round" 
-                strokeLinejoin="round"
+          <div className="questionnaire-header-left">
+            {onBack && (
+              <button 
+                className="back-button"
+                onClick={onBack}
+                aria-label={`${TEXT.questionnaire.back.en} / ${TEXT.questionnaire.back.zh}`}
+                title={`${TEXT.questionnaire.back.en} / ${TEXT.questionnaire.back.zh}`}
               >
-                <path d="M19 12H5M12 19l-7-7 7-7"/>
-              </svg>
-            </button>
-          )}
-          <h1 className="questionnaire-title">
-            <div className="title-en">Experimental Questionnaire</div>
-            <div className="title-cn">实验问卷</div>
-          </h1>
+                <svg 
+                  width="24" 
+                  height="24" 
+                  viewBox="0 0 24 24" 
+                  fill="none" 
+                  stroke="currentColor" 
+                  strokeWidth="2" 
+                  strokeLinecap="round" 
+                  strokeLinejoin="round"
+                >
+                  <path d="M19 12H5M12 19l-7-7 7-7"/>
+                </svg>
+              </button>
+            )}
+          </div>
+          <div className="questionnaire-header-center">
+            <h1 className="questionnaire-title">
+              <Bilingual
+                en={TEXT.questionnaire.title.en}
+                zh={TEXT.questionnaire.title.zh}
+                enClassName="title-en"
+                zhClassName="title-cn"
+              />
+            </h1>
+          </div>
+          <div className="questionnaire-header-right" />
         </div>
         <div className="questionnaire-intro">
-          <div className="intro-en">Please answer the following questions based on the video you just watched.</div>
-          <div className="intro-cn">请根据刚才观看的视频回答以下问题</div>
+          <Bilingual
+            en={TEXT.questionnaire.intro.en}
+            zh={TEXT.questionnaire.intro.zh}
+            enClassName="intro-en"
+            zhClassName="intro-cn"
+          />
         </div>
 
         <div className="questions-list">
@@ -686,18 +721,35 @@ export default function Questionnaire({
             onClick={handleSubmit}
             disabled={isSubmitting}
           >
-            {isSubmitting 
-              ? '提交中...' 
-              : isAllAnswered() 
-                ? 'Submit / 提交' 
-                : 'Check required questions / 检查必答题'
-            }
+            {isSubmitting ? (
+              <Bilingual
+                en={TEXT.questionnaire.submitting.en}
+                zh={TEXT.questionnaire.submitting.zh}
+                align="center"
+              />
+            ) : isAllAnswered() ? (
+              <Bilingual
+                en={TEXT.questionnaire.submit.en}
+                zh={TEXT.questionnaire.submit.zh}
+                align="center"
+              />
+            ) : (
+              <Bilingual
+                en={TEXT.questionnaire.checkRequired.en}
+                zh={TEXT.questionnaire.checkRequired.zh}
+                align="center"
+              />
+            )}
           </button>
           
           {submitStatus === 'error' && (
             <div className="error-message">
-              <div className="error-text-en">Submission failed. Please try again.</div>
-              <div className="error-text-cn">提交失败，请重试</div>
+              <Bilingual
+                en={TEXT.questionnaire.submitError.en}
+                zh={TEXT.questionnaire.submitError.zh}
+                enClassName="error-text-en"
+                zhClassName="error-text-cn"
+              />
             </div>
           )}
         </div>
