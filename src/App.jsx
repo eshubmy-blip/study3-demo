@@ -8,7 +8,8 @@ import { getLeastCompletedVideo } from './utils/videos'
 import './App.css'
 
 function App() {
-  const [currentStep, setCurrentStep] = useState('start') // 'start' | 'video' | 'questionnaire'
+  // 默认直接进入视频阶段（不再经过 StartPage）
+  const [currentStep, setCurrentStep] = useState('video') // 'video' | 'questionnaire'
   const [userId, setUserId] = useState(null)
   const [behaviorData, setBehaviorData] = useState(null)
   // 交互状态管理（状态提升）
@@ -37,51 +38,68 @@ function App() {
     sessionCreatedRef.current = false
   }, [])
 
-  const handleStart = async () => {
-    // 标记本次会话已通过用户点击解锁过一次声音
-    sessionStorage.setItem('study3_sound_unlocked', '1')
+  // 在 userId 生成后自动初始化实验：选择视频 + 创建 session
+  useEffect(() => {
+    if (!userId) return
 
-    // 重置交互状态和视频数据（新开始实验）
-    setInteractionState({
-      likeClicked: false,
-      cartClicked: false
-    })
-    setQuestionnaireAnswers({}) // 清除问卷答案
-    setReturnCount(0) // 重置返回次数
-    sessionCreatedRef.current = false // 重置 session 创建标志
-    videoPickedRef.current = false // 重置视频选择标志
-    
-    // 新开始实验时，基于“最少完成数优先”策略选择视频（只执行一次，使用 useRef 防止重复）
-    if (!videoPickedRef.current) {
-      const video = await getLeastCompletedVideo()
-      setCurrentVideoData(video)
-      videoPickedRef.current = true
-      console.log("[VIDEO PICKED IN APP]", video.video_id)
-      
-      // 创建 session 记录（使用 useRef 防止重复创建）
-      if (!sessionCreatedRef.current && userId && video?.video_id) {
-        const createSession = async () => {
-          try {
-            await insertOrUpdateStudy3Session({
-              user_id: userId,
-              video_id: video.video_id,
-              completed: 0,
-              return_count: 0,
-              created_at: new Date().toISOString(),
-              updated_at: new Date().toISOString()
-            })
-            sessionCreatedRef.current = true
-            console.log('✅ Session 记录已创建 (首次进入视频)')
-          } catch (error) {
-            console.error('❌ Session 记录创建失败:', error)
-          }
-        }
-        createSession()
+    // 防止在 StrictMode 或依赖变化时重复执行
+    if (videoPickedRef.current) return
+
+    const initExperiment = async () => {
+      // 标记本次会话已通过用户进入实验页面解锁一次声音
+      try {
+        sessionStorage.setItem('study3_sound_unlocked', '1')
+      } catch {
+        // sessionStorage 不可用时忽略，不影响主流程
       }
+
+      // 重置交互状态和视频数据（新开始实验）
+      setInteractionState({
+        likeClicked: false,
+        cartClicked: false
+      })
+      setQuestionnaireAnswers({}) // 清除问卷答案
+      setReturnCount(0) // 重置返回次数
+      sessionCreatedRef.current = false // 重置 session 创建标志
+      videoPickedRef.current = false // 重置视频选择标志
+
+      // 基于“最少完成数优先”策略选择视频（只执行一次，使用 useRef 防止重复）
+      if (!videoPickedRef.current) {
+        const video = await getLeastCompletedVideo()
+        if (!video) return
+
+        setCurrentVideoData(video)
+        videoPickedRef.current = true
+        console.log("[VIDEO PICKED IN APP]", video.video_id)
+
+        // 创建 session 记录（使用 useRef 防止重复创建）
+        if (!sessionCreatedRef.current && userId && video?.video_id) {
+          const createSession = async () => {
+            try {
+              await insertOrUpdateStudy3Session({
+                user_id: userId,
+                video_id: video.video_id,
+                completed: 0,
+                return_count: 0,
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString()
+              })
+              sessionCreatedRef.current = true
+              console.log('✅ Session 记录已创建 (首次进入视频)')
+            } catch (error) {
+              console.error('❌ Session 记录创建失败:', error)
+            }
+          }
+          createSession()
+        }
+      }
+
+      // 默认进入视频页面
+      setCurrentStep('video')
     }
-    
-    setCurrentStep('video')
-  }
+
+    initExperiment()
+  }, [userId])
 
   const handleVideoComplete = useCallback(async (data) => {
     console.log('行为数据已记录:', data)
@@ -194,10 +212,6 @@ function App() {
 
   return (
     <div className="app-container">
-      {currentStep === 'start' && (
-        <StartPage onStart={handleStart} />
-      )}
-
       {currentStep === 'video' && currentVideoData && (
         <VideoExperiment 
           onComplete={handleVideoComplete}
