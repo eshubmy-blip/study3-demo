@@ -81,6 +81,8 @@ function App() {
                 video_id: video.video_id,
                 completed: 0,
                 return_count: 0,
+                like_clicked: 0,
+                cart_clicked: 0,
                 created_at: new Date().toISOString(),
                 updated_at: new Date().toISOString()
               })
@@ -163,12 +165,30 @@ function App() {
     setCurrentStep('video')
   }
 
-  // 处理交互状态变化
-  const handleInteractionChange = (type, value) => {
-    setInteractionState(prev => ({
-      ...prev,
-      [type]: value
-    }))
+  // 处理交互状态变化（实时同步到 session）
+  const handleInteractionChange = async (type, value) => {
+    // 使用 next 状态计算最新的 like/cart
+    setInteractionState(prev => {
+      const next = {
+        ...prev,
+        [type]: value
+      }
+
+      // 实时更新 session 记录（异步执行，不阻塞 UI）
+      if (sessionCreatedRef.current && userId && currentVideoData?.video_id) {
+        insertOrUpdateStudy3Session({
+          user_id: userId,
+          video_id: currentVideoData.video_id,
+          like_clicked: next.likeClicked ? 1 : 0,
+          cart_clicked: next.cartClicked ? 1 : 0,
+          updated_at: new Date().toISOString()
+        }).catch(e => {
+          console.error('[SESSION INTERACTION UPDATE ERROR]', e)
+        })
+      }
+
+      return next
+    })
   }
 
   // 处理问卷答案变化
